@@ -1,0 +1,287 @@
+---
+title: "ps1223_hw3_final"
+author: "Parthvi Soni"
+date: "2023-02-27"
+output: html_document
+---
+
+
+```{r}
+library(readr)
+raisin_data <- read_csv("/Users/parthvi/Desktop/Desktop/Parthvi/MITA/SEM2/MVA/week 5/Raisin_Dataset.csv")
+
+unique(raisin_data$Class)
+
+#cleaning the data and keeping only numerical values 
+raisin_data_nums = raisin_data[,1:7]
+
+raisin_data_nums
+
+
+
+is.matrix(raisin_data_nums) #false
+
+raisin_data_matrix <- as.matrix(raisin_data_nums) # converting the data to matrix 
+raisin_data_matrix
+is.matrix(raisin_data_matrix)
+
+# Computing the means of each variable in matrices 
+colMeans(raisin_data_matrix)
+# mean value for each column in raisin data matrix 
+
+# Covariance matrix for raisin data matrix
+cov(raisin_data_matrix)
+
+# Correlation matrix for raisin data matrix
+cor(raisin_data_matrix)
+
+# -------x------x------x----x------x-----x---------x---------
+
+
+str(raisin_data)
+attach(raisin_data)
+
+
+#Get the Correlations between the measurements
+cor(raisin_data_nums)
+
+# Using prcomp to compute the principal components (eigenvalues and eigenvectors). With scale=TRUE, variable means are set to zero, and variances set to one
+raisin_data_pca <- prcomp(raisin_data_nums,scale=TRUE)
+raisin_data_pca
+summary(raisin_data_pca)
+raisin_data_pca$x
+# sample scores stored in raisin_data_pca$x
+# singular values (square roots of eigenvalues) stored in raisin_data_pca$sdev
+# loadings (eigenvectors) are stored in raisin_data_pca$rotation
+# variable means stored in raisin_data_pca$center
+# variable standard deviations stored in raisin_data_pca$scale
+# A table containing eigenvalues and %'s accounted, follows
+# Eigenvalues are sdev^2
+(eigen_raisins <- raisin_data_pca$sdev^2)
+names(eigen_raisins) <- paste("PC",1:5,sep="")
+eigen_raisins
+sumlambdas <- sum(eigen_raisins)
+sumlambdas
+propvar <- eigen_raisins/sumlambdas
+propvar
+cumvar_raisins <- cumsum(propvar)
+cumvar_raisins
+matlambdas <- rbind(eigen_raisins,propvar,cumvar_raisins)
+rownames(matlambdas) <- c("Eigenvalues","Prop. variance","Cum. prop. variance")
+round(matlambdas,4)
+summary(raisin_data_pca)
+raisin_data_pca$rotation
+print(raisin_data_pca)
+
+## Sample scores stored in raisin_data_pca$x
+raisin_data_pca$x
+# Identifying the scores by their salary status
+raisintyp_pca <- cbind(data.frame(Class),raisin_data_pca$x)
+raisintyp_pca
+# Means of scores for all the PC's classified by Salary status
+tabmeansPC <- aggregate(raisintyp_pca[,2:6],by=list(Class=raisin_data$Class),mean)
+tabmeansPC
+tabmeansPC <- tabmeansPC[rev(order(tabmeansPC$Class)),]
+tabmeansPC
+tabfmeans <- t(tabmeansPC[,-1])
+tabfmeans
+colnames(tabfmeans) <- t(as.vector(tabmeansPC[1]$Class))
+tabfmeans
+
+# Standard deviations of scores for all the PC's classified by Salary status
+tabsdsPC <- aggregate(raisintyp_pca[,2:6],by=list(Class=raisin_data$Class),sd)
+tabfsds <- t(tabsdsPC[,-1])
+colnames(tabfsds) <- t(as.vector(tabsdsPC[1]$Class))
+tabfsds
+t.test(PC1~raisin_data$Class,data=raisintyp_pca)
+t.test(PC2~raisin_data$Class,data=raisintyp_pca)
+t.test(PC3~raisin_data$Class,data=raisintyp_pca)
+t.test(PC4~raisin_data$Class,data=raisintyp_pca)
+t.test(PC5~raisin_data$Class,data=raisintyp_pca)
+## F ratio tests
+var.test(PC1~raisin_data$Class,data=raisintyp_pca)
+var.test(PC2~raisin_data$Class,data=raisintyp_pca)
+var.test(PC3~raisin_data$Class,data=raisintyp_pca)
+var.test(PC4~raisin_data$Class,data=raisintyp_pca)
+var.test(PC5~raisin_data$Class,data=raisintyp_pca)
+
+# Levene's tests (one-sided)
+library(car)
+(LTPC1 <- leveneTest(PC1~raisin_data$Class,data=raisintyp_pca))
+(p_PC1_1sided <- LTPC1[[3]][1]/2)
+(LTPC2 <- leveneTest(PC2~raisin_data$Class,data=raisintyp_pca))
+(p_PC2_1sided=LTPC2[[3]][1]/2)
+(LTPC3 <- leveneTest(PC3~raisin_data$Class,data=raisintyp_pca))
+(p_PC3_1sided <- LTPC3[[3]][1]/2)
+(LTPC4 <- leveneTest(PC4~raisin_data$Class,data=raisintyp_pca))
+(p_PC4_1sided <- LTPC4[[3]][1]/2)
+(LTPC5 <- leveneTest(PC5~raisin_data$Class,data=raisintyp_pca))
+(p_PC5_1sided <- LTPC5[[3]][1]/2)
+
+
+
+
+# Plotting the scores for the first and second components
+plot(raisintyp_pca$PC1, raisintyp_pca$PC2,pch=ifelse(raisintyp_pca$Class == "Y",1,16),xlab="PC1", ylab="PC2", main="Raisin class against values for PC1 & PC2")
+abline(h=0)
+abline(v=0)
+legend("bottomleft", legend=c("Kecimen","Besni"), pch=c(1,16))
+plot(eigen_raisins, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+plot(log(eigen_raisins), xlab = "Component number",ylab = "log(Component variance)", type="l",main = "Log(eigenvalue) diagram")
+print(summary(raisintyp_pca))
+
+diag(cov(raisin_data_pca$x))
+xlim <- range(raisin_data_pca$x[,1])
+raisin_data_pca$x[,1]
+raisin_data_pca$x
+plot(raisin_data_pca$x,xlim=xlim,ylim=xlim)
+
+raisin_data_pca$rotation[,1]
+raisin_data_pca$rotation
+
+#get the original value of the data based on PCA
+center <- raisin_data_pca$center
+scale <- raisin_data_pca$scale
+new_raisin <- as.matrix(raisin_data[,1:7])
+new_raisin
+drop(scale(new_raisin,center=center, scale=scale)%*%raisin_data_pca$rotation[,1])
+predict(raisin_data_pca)[,1]
+
+
+library(factoextra)
+library(corrplot)
+library(devtools)
+library(FactoMineR)
+library(psych)
+library(vctrs)
+
+var<-get_pca_var(raisin_data_pca)
+var
+
+raisin_data_pca
+# Correlation
+pairs.panels(raisin_data[,1:7],
+             gap = 0,
+             bg = c("red", "blue")[raisin_data$Class],
+             pch=21)
+##Minor Axis Length and Area have a positive correlation of 0.91 whereas Extent and Area have a negative correlation of -0.01
+
+pairs.panels(raisin_data_pca$x,
+             gap=0,
+             bg = c("red", "blue")[raisin_data$Class],
+             pch=21)
+
+fviz_eig(raisin_data_pca, addlabels = TRUE)
+###First dimension shows the highest variance at 69% and the percentage decreases with the no. of dimensions
+
+fviz_pca_var(raisin_data_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+
+##Quality of representation
+head(var$cos2)
+corrplot(var$cos2,is.corr=FALSE)
+###Convex Area has the highest presence in the 1st dimension whereas Eccentricity has the highest presence in the 2nd dimension
+
+# Color by cos2 values: quality on the factor map
+fviz_pca_var(raisin_data_pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+)
+
+#Contributions of variables to PCs
+head(var$contrib, 4)
+corrplot(var$contrib, is.corr=FALSE)   
+fviz_pca_var(raisin_data_pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+)
+##Major Axis Length , Perimeter,Minor Axis Length are more closely related to each pther as compared to Eccentricity and Extent which are present far off
+
+# Contributions of variables to PC1
+fviz_contrib(raisin_data_pca, choice = "var", axes = 1, top = 10)
+##Extent has the lowest contribution to Dimension 1 and Convex Area has the highest contribution.
+
+# Contributions of variables to PC2
+fviz_contrib(raisin_data_pca, choice = "var", axes = 2, top = 10)
+fviz_contrib(raisin_data_pca, choice = "var", axes = 1:2, top = 10)
+
+
+#Graphs of individuals
+
+ind <- get_pca_ind(raisin_data_pca)
+ind
+
+# Coordinates of individuals
+head(ind$coord)
+# Quality of individuals
+head(ind$cos2)
+# Contributions of individuals
+head(ind$contrib)
+
+
+fviz_pca_ind(raisin_data_pca, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+)
+
+fviz_pca_ind(raisin_data_pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = raisin_data$Class, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, # Concentration ellipses
+             legend.title = "Groups"
+)
+ind.p <- fviz_pca_ind(raisin_data_pca, geom = "point", col.ind = raisin_data$Class)
+ggpubr::ggpar(ind.p,
+              title = "Principal Component Analysis",
+              subtitle = "Raisin data set",
+              xlab = "PC1", ylab = "PC2",
+              legend.title = "Class", legend.position = "top",
+              ggtheme = theme_gray(), palette = "jco"
+)
+##Shows the distribution of both the Classes of Raisins in PC1 and PC2
+
+library(Hotelling)
+t2testraisin <- hotelling.test(Area + MajorAxisLength + MinorAxisLength + Eccentricity + ConvexArea+ Extent + Perimeter  ~ Class, data=raisin_data)
+# Output of the function hotelling.test is given
+cat("T2 statistic =",t2testraisin$stat[[1]],"\n")
+print(t2testraisin)
+#  T2 statistic is located in the first element of the list "stat"
+
+# ANOVA
+summary(aov(Area ~ Class))
+summary(aov(MajorAxisLength ~ Class))
+summary(aov(MinorAxisLength ~ Class))
+summary(aov(Eccentricity ~ Class))
+summary(aov(ConvexArea ~ Class))
+summary(aov(ConvexArea ~ Class))
+summary(aov(Extent ~ Class))
+summary(aov(Perimeter ~ Class))
+
+
+# mahalanobis
+library(stats)
+
+raisin_x <- raisin_data[, 1:7]
+raisin_x
+raisin_cm <- colMeans(raisin_x)
+raisin_S <- cov(raisin_x)
+raisin_d <- apply(raisin_x, MARGIN = 1, function(raisin_x)t(raisin_x - raisin_cm) %*% solve(raisin_S) %*% (raisin_x - raisin_cm))
+raisin_cm
+raisin_S
+raisin_d
+
+
+raisin_MD <- mahalanobis(raisin_x, raisin_cm, raisin_S)
+raisin_MD
+raisin_data$pvalues <- pchisq(raisin_MD, df=3, lower.tail=FALSE)
+raisin_data
+
+# BoxM
+
+library(biotools)
+boxM(raisin_data[,1:7],Class)
+
+
+```
+
